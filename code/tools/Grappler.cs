@@ -8,7 +8,7 @@ public partial class Grappler : Carriable
 	#region Configuration - ConVars
 
 	[ConVar.Replicated( "grappler_max_dist" )]
-	public static float MaxDistance { get; set; } = 1500.0f;
+	public static float MaxDistance { get; set; } = 1100.0f;
 
 	[ConVar.Replicated( "grappler_retract_rate" )]
 	public static float RetractRate { get; set; } = 9.0f;
