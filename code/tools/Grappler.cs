@@ -118,13 +118,15 @@ public partial class Grappler : Carriable
 		// No, linq slow >:(
 		// ReSharper disable once LoopCanBeConvertedToQuery
 		if ( obstructions != null )
+		{
 			foreach ( var traceResult in obstructions )
 			{
-				if ( traceResult.Hit )
-				{
-					avoidanceBias += traceResult.Normal.Cross( Vector3.Up ).Length * traceResult.Normal;
-				}
+				if ( !traceResult.Hit ) continue;
+
+				// Cross with up vector so we don't avoid the floor (looks weird)
+				avoidanceBias += traceResult.Normal.Cross( Vector3.Up ).Length * traceResult.Normal;
 			}
+		}
 
 		player.Velocity = (goal - player.Position) / dt + (biasWeight * player.Velocity.Length * avoidanceBias);
 	}
