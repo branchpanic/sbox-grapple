@@ -4,15 +4,13 @@
 	{
 		sounds = 
 		[
-			"sounds/grappling_hook.0.vsnd",
-			"sounds/grappling_hook.1.vsnd",
-			"sounds/grappling_hook.2.vsnd",
+			"sounds/rope_pull.0.vsnd",
 		]
 		UI = false
-		Volume = 1.0
+		Volume = 0.08
 		VolumeRandom = 0.0
-		Pitch = 2.3
-		PitchRandom = 0.2
+		Pitch = 1.4
+		PitchRandom = 0.7
 		DistanceMax = 1000.0
 	}
 }

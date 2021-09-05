@@ -5,13 +5,31 @@ using Sandbox.Joints;
 [Library( "weapon_grappler", Title = "Grappler", Spawnable = true )]
 public partial class Grappler : Carriable
 {
+	#region Configuration - ConVars
+
 	[ConVar.Replicated( "grappler_max_dist" )]
-	public static float MaxDistance { get; set; } = 2000.0f;
+	public static float MaxDistance { get; set; } = 1500.0f;
 
 	[ConVar.Replicated( "grappler_retract_rate" )]
-	public static float RetractRate { get; set; } = 6.0f;
+	public static float RetractRate { get; set; } = 9.0f;
 
-	public const float MinRopeLength = 120.0f;
+	#endregion
+
+
+	#region Configuration - Constants
+
+	// Grapple behavior
+	private const float MinRopeLength = 120.0f;
+	private const float TraceSize = 6f;
+
+	// Wall avoidance
+	private const float ObstructionLookahead = .3f; // how far should we extrapolate when looking for an obstruction?
+
+	private const float
+		WallAvoidanceBiasWeight = .15f; // how much should we affect the velocity as a result? (function of velocity)
+
+	#endregion
+
 
 	[Net] public Vector3 AnchorPoint { get; set; }
 	[Net] public float RopeLength { get; set; }
@@ -41,20 +59,27 @@ public partial class Grappler : Carriable
 			.WorldOnly()
 			.Ignore( Owner )
 			.Ignore( this )
-			.Size( 6f )
+			.Size( TraceSize )
 			.Run();
 
 		if ( !result.Hit || result.Body == null ) return false;
 
 		AnchorPoint = result.EndPos;
-		RopeLength = MathF.Max( MinRopeLength, (AnchorPoint - player.Position).Length );
+
+		var newRopeLength = (AnchorPoint - player.Position).Length;
+
+		RopeLength = MathF.Max( MinRopeLength, newRopeLength );
 		Grappling = true;
-		player.GroundEntity = null;
+		player.GroundEntity = null; // pull the player off the ground if necessary
 
-		// TODO: Better sound effect
+		// TODO: Better FX
+		player.SetAnimBool( "b_attack", true );
+		if ( IsLocalPawn )
+		{
+			_ = new Sandbox.ScreenShake.Perlin();
+		}
+
 		PlaySound( "grappling_hook" );
-
-		// TODO: Bullet dust cloud is too small and decal is unnecessary
 		result.Surface.DoBulletImpact( result );
 
 		return true;
@@ -73,9 +98,12 @@ public partial class Grappler : Carriable
 		// TODO: Should all of this be predicted? I don't know anything about game networking 
 		if ( Owner is not Player player ) return;
 
-		if ( Input.Pressed( InputButton.Attack1 ) )
+		if ( !player.Velocity.IsNearlyZero() ) DebugOverlay.Axis( player.Position, player.Rotation, 6.0f, 45.0f );
+
+		if ( Input.Pressed( InputButton.Attack1 ) && !Grappling )
 		{
 			if ( !StartGrappling() ) return;
+			DebugOverlay.Sphere( AnchorPoint, 6.0f, Color.Red, duration: 45.0f );
 		}
 
 		if ( Input.Released( InputButton.Attack1 ) )
@@ -85,6 +113,8 @@ public partial class Grappler : Carriable
 
 		if ( !Grappling ) return;
 
+		DebugOverlay.Line( player.Position, AnchorPoint, 45.0f );
+
 		if ( Input.Down( InputButton.Attack2 ) )
 		{
 			// TODO: Rope retract sound
@@ -92,6 +122,9 @@ public partial class Grappler : Carriable
 
 			// Don't stick the player to the ground when they're trying to pull themselves
 			player.GroundEntity = null;
+
+			// TODO: More FX needing improvement, could possibly make pitch a function of (initial length - current length)
+			if ( RopeLength - MinRopeLength > 0.1f ) PlaySound( "rope_pull" );
 		}
 
 		var dt = Time.Delta;
@@ -104,9 +137,7 @@ public partial class Grappler : Carriable
 
 		// Try to prevent the player from hitting walls
 		// Parameters may need more tuning, but they're alright for now
-		const float obstructionLookahead = .3f; // how far should we extrapolate when looking for an obstruction?
-		const float biasWeight = .15f; // how much should we affect the velocity as a result?
-		var obstructions = Trace.Ray( player.Position, player.Position + obstructionLookahead * player.Velocity )
+		var obstructions = Trace.Ray( player.Position, player.Position + ObstructionLookahead * player.Velocity )
 			.WorldOnly()
 			.Ignore( player )
 			.Ignore( this )
@@ -128,7 +159,8 @@ public partial class Grappler : Carriable
 			}
 		}
 
-		player.Velocity = (goal - player.Position) / dt + (biasWeight * player.Velocity.Length * avoidanceBias);
+		player.Velocity = (goal - player.Position) / dt +
+		                  (WallAvoidanceBiasWeight * player.Velocity.Length * avoidanceBias);
 	}
 
 	[Event.Frame]
