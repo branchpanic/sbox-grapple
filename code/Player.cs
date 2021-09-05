@@ -50,12 +50,12 @@ partial class SandboxPlayer : Player
 
 		Dress();
 
-		Inventory.Add( new PhysGun(), true );
+		Inventory.Add( new Grappler(), true );
+		Inventory.Add( new PhysGun() );
 		Inventory.Add( new GravGun() );
 		Inventory.Add( new Tool() );
 		Inventory.Add( new Pistol() );
 		Inventory.Add( new Flashlight() );
-		Inventory.Add( new Grappler() );
 
 		base.Respawn();
 	}
