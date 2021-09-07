@@ -117,11 +117,10 @@ public partial class Grappler : Carriable
 
 		if ( Input.Down( InputButton.Attack2 ) )
 		{
-			// TODO: Rope retract sound
 			RopeLength = MathF.Max( MinRopeLength, RopeLength - RetractRate );
 
 			// Don't stick the player to the ground when they're trying to pull themselves
-			player.GroundEntity = null;
+			if (Input.Pressed( InputButton.Attack2 )) player.GroundEntity = null;
 
 			// TODO: More FX needing improvement, could possibly make pitch a function of (initial length - current length)
 			if ( RopeLength - MinRopeLength > 0.1f ) PlaySound( "rope_pull" );
@@ -158,7 +157,13 @@ public partial class Grappler : Carriable
 				avoidanceBias += traceResult.Normal.Cross( Vector3.Up ).Length * traceResult.Normal;
 			}
 		}
-
+		
+		// TODO: It's possible to build up a ton of speed against a wall in a configuration like this
+		//
+		//             _____x (anchor)____
+		// (player) o |
+		//
+		// The resulting movement is kinda annoying and I'm not sure how to address it
 		player.Velocity = (goal - player.Position) / dt +
 		                  (WallAvoidanceBiasWeight * player.Velocity.Length * avoidanceBias);
 	}
